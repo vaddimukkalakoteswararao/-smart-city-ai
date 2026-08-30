@@ -1569,4 +1569,105 @@ textarea {
   .result-row strong {
     text-align: left;
   }
+}/* =========================================================
+   SMART CITY AI CHAT
+   ========================================================= */
+
+.smart-chat-section {
+  margin-top: 24px;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 6px;
+  margin-bottom: 16px;
+}
+
+.chat-message {
+  max-width: 82%;
+  padding: 13px 15px;
+  border-radius: 14px;
+  border: 1px solid #283a54;
+}
+
+.chat-assistant {
+  align-self: flex-start;
+  background: linear-gradient(
+    145deg,
+    rgba(59, 130, 246, 0.13),
+    rgba(6, 182, 212, 0.07)
+  );
+}
+
+.chat-user {
+  align-self: flex-end;
+  background: linear-gradient(
+    145deg,
+    #172941,
+    #132238
+  );
+}
+
+.chat-message-label {
+  margin-bottom: 5px;
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chat-message-content {
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-form input {
+  flex: 1;
+  min-height: 46px;
+  padding: 11px 14px;
+  background: #0b1627;
+  color: #f8fafc;
+  border: 1px solid #30445f;
+  border-radius: 10px;
+}
+
+.chat-form input::placeholder {
+  color: #64748b;
+}
+
+.chat-form input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  outline: none;
+}
+
+.chat-form button {
+  white-space: nowrap;
+}
+
+.chat-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .chat-form {
+    flex-direction: column;
+  }
+
+  .chat-message {
+    max-width: 94%;
+  }
 }
