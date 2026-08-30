@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8001";
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  "http://127.0.0.1:8001";
 
 const civicIssues = [
   {
@@ -1477,7 +1479,13 @@ function App() {
       currentUser?.role ===
         "citizen"
     ) {
-      loadMyComplaints();
+      const timer = setTimeout(() => {
+        loadMyComplaints();
+      }, 300);
+
+      return () => {
+        clearTimeout(timer);
+      };
     }
   }, [
     loggedIn,
@@ -1788,36 +1796,6 @@ function App() {
       selectedComplaint.longitude !==
         undefined;
 
-    const aiResponseText =
-      selectedComplaint.ai_response ||
-      "";
-
-    const recommendationMarker =
-      "AI Operational Recommendation:";
-
-    const hasRecommendation =
-      aiResponseText.includes(
-        recommendationMarker
-      );
-
-    const baseAiAssessment =
-      hasRecommendation
-        ? aiResponseText
-            .split(recommendationMarker)[0]
-            .trim()
-        : aiResponseText;
-
-    const operationalRecommendation =
-      hasRecommendation
-        ? aiResponseText
-            .split(recommendationMarker)
-            .slice(1)
-            .join(
-              recommendationMarker
-            )
-            .trim()
-        : "";
-
     return (
       <div className="dashboard">
 
@@ -2107,121 +2085,15 @@ function App() {
             {selectedComplaint.ai_response && (
               <div className="ai-response-card">
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "#eff6ff",
-                      fontSize: "19px",
-                    }}
-                  >
-                    🤖
-                  </div>
-
-                  <div>
-                    <h3 style={{ margin: 0 }}>
-                      AI Assessment
-                    </h3>
-
-                    <p
-                      className="section-subtitle"
-                      style={{ margin: "3px 0 0" }}
-                    >
-                      Automated complaint classification and response
-                    </p>
-                  </div>
-                </div>
+                <h3>
+                  AI Assessment
+                </h3>
 
                 <p>
-                  {baseAiAssessment}
+                  {
+                    selectedComplaint.ai_response
+                  }
                 </p>
-
-              </div>
-            )}
-
-            {operationalRecommendation && (
-              <div
-                className="ai-response-card"
-                style={{
-                  marginTop: "16px",
-                  background:
-                    "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
-                  border: "1px solid #bfdbfe",
-                }}
-              >
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "14px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "#dbeafe",
-                      fontSize: "21px",
-                    }}
-                  >
-                    💡
-                  </div>
-
-                  <div>
-                    <h3
-                      style={{
-                        margin: 0,
-                        color: "#1e3a8a",
-                      }}
-                    >
-                      AI Operational Recommendation
-                    </h3>
-
-                    <p
-                      className="section-subtitle"
-                      style={{ margin: "3px 0 0" }}
-                    >
-                      Suggested action for municipal staff
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "12px",
-                    background: "#ffffff",
-                    border: "1px solid #dbeafe",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      lineHeight: 1.7,
-                      color: "#334155",
-                    }}
-                  >
-                    {operationalRecommendation}
-                  </p>
-                </div>
 
               </div>
             )}
