@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
-from ultralytics import YOLO
+from typing import Any
 
 
 # ---------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------
 
-MODEL_PATH = "models/smartcity_pothole_yolo11n.pt"
+MODEL_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "models",
+        "smartcity_pothole_yolo11n.pt",
+    )
+)
 
 SUPPORTED_EXTENSIONS = {
     ".jpg",
@@ -22,22 +28,62 @@ SUPPORTED_EXTENSIONS = {
 
 
 # ---------------------------------------------------------
-# Load the trained YOLO model once
+# Lazy-loaded model
 # ---------------------------------------------------------
 
-try:
-    model = YOLO(MODEL_PATH)
-    MODEL_LOAD_ERROR = None
-except Exception as error:
-    model = None
-    MODEL_LOAD_ERROR = str(error)
+model = None
+MODEL_LOAD_ERROR = None
+MODEL_LOAD_ATTEMPTED = False
+
+
+def _get_model():
+    """
+    Load the YOLO model only when image analysis is actually
+    requested.
+
+    This keeps application startup fast so Render can detect
+    the HTTP port before the heavier computer-vision model
+    initialization happens.
+    """
+    global model
+    global MODEL_LOAD_ERROR
+    global MODEL_LOAD_ATTEMPTED
+
+    if MODEL_LOAD_ATTEMPTED:
+        return model
+
+    MODEL_LOAD_ATTEMPTED = True
+
+    try:
+        from ultralytics import YOLO
+
+        model = YOLO(MODEL_PATH)
+        MODEL_LOAD_ERROR = None
+
+        print(
+            f"YOLO model loaded successfully: "
+            f"{MODEL_PATH}"
+        )
+
+    except Exception as error:
+        model = None
+        MODEL_LOAD_ERROR = str(error)
+
+        print(
+            "YOLO model could not be loaded:",
+            MODEL_LOAD_ERROR,
+        )
+
+    return model
 
 
 # ---------------------------------------------------------
 # Vision Agent
 # ---------------------------------------------------------
 
-def analyze_image(image_path: str) -> dict[str, Any]:
+def analyze_image(
+    image_path: str,
+) -> dict[str, Any]:
     """
     Analyze a complaint image using the trained
     Smart City YOLO pothole detection model.
@@ -52,10 +98,12 @@ def analyze_image(image_path: str) -> dict[str, Any]:
     }
 
     # -----------------------------------------------------
-    # Check whether the model loaded
+    # Load model lazily
     # -----------------------------------------------------
 
-    if model is None:
+    vision_model = _get_model()
+
+    if vision_model is None:
         result["message"] = (
             "Vision model could not be loaded: "
             f"{MODEL_LOAD_ERROR}"
@@ -93,7 +141,7 @@ def analyze_image(image_path: str) -> dict[str, Any]:
     # -----------------------------------------------------
 
     try:
-        predictions = model(
+        predictions = vision_model(
             image_path,
             conf=0.10,
             verbose=False,
@@ -126,7 +174,7 @@ def analyze_image(image_path: str) -> dict[str, Any]:
                     box.conf[0].item()
                 )
 
-                class_name = model.names[
+                class_name = vision_model.names[
                     class_id
                 ]
 
@@ -141,7 +189,7 @@ def analyze_image(image_path: str) -> dict[str, Any]:
                     }
                 )
 
-                # Keep the highest-confidence detection
+                # Keep highest-confidence detection
                 if confidence > best_confidence:
                     best_confidence = confidence
                     best_issue = class_name
@@ -151,8 +199,11 @@ def analyze_image(image_path: str) -> dict[str, Any]:
         # -------------------------------------------------
 
         result["success"] = True
+
         result["objects"] = detected_objects
+
         result["detected_issue"] = best_issue
+
         result["confidence"] = round(
             best_confidence,
             4,
@@ -173,47 +224,9 @@ def analyze_image(image_path: str) -> dict[str, Any]:
         return result
 
     except Exception as error:
+
         result["message"] = (
             f"Image analysis failed: {error}"
         )
+
         return result
-
-
-# ---------------------------------------------------------
-# Simple manual test
-# ---------------------------------------------------------
-
-if __name__ == "__main__":
-
-    test_image = (
-        r"D:\OneDrive\Desktop\AI Smart City Project"
-        r"\uploads\complaints\CMP-0D7A0051.jpg"
-    )
-
-    output = analyze_image(
-        test_image
-    )
-
-    print()
-    print("Smart City Computer Vision Agent")
-    print("=" * 50)
-    print(
-        f"Success: "
-        f"{output['success']}"
-    )
-    print(
-        f"Detected Issue: "
-        f"{output['detected_issue']}"
-    )
-    print(
-        f"Confidence: "
-        f"{output['confidence']}"
-    )
-    print(
-        f"Objects: "
-        f"{output['objects']}"
-    )
-    print(
-        f"Message: "
-        f"{output['message']}"
-    )
