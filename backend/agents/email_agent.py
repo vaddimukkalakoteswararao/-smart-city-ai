@@ -1,6 +1,7 @@
+import json
 import os
-import smtplib
-from email.message import EmailMessage
+import urllib.error
+import urllib.request
 
 from dotenv import load_dotenv
 
@@ -8,11 +9,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+# =========================================================
+# RESEND CONFIGURATION
+# =========================================================
 
+RESEND_API_URL = "https://api.resend.com/emails"
+
+RESEND_API_KEY = os.getenv(
+    "RESEND_API_KEY"
+)
+
+RESEND_FROM_EMAIL = os.getenv(
+    "RESEND_FROM_EMAIL",
+    "Smart City AI <onboarding@resend.dev>",
+)
+
+
+# =========================================================
+# CREATE COMPLAINT EMAIL
+# =========================================================
 
 def create_complaint_email(
     email: str,
@@ -22,12 +37,15 @@ def create_complaint_email(
     department: str,
     ai_response: str,
 ):
-    subject = f"Smart City AI - Complaint {complaint_id}"
+    subject = (
+        f"Smart City AI - Complaint {complaint_id}"
+    )
 
     body = f"""
 Hello,
 
-Your civic complaint has been successfully registered with Smart City AI.
+Your civic complaint has been successfully
+registered with Smart City AI.
 
 Complaint ID: {complaint_id}
 Category: {category}
@@ -38,7 +56,8 @@ Status: Submitted
 AI Response:
 {ai_response}
 
-You can use your Complaint ID to track the complaint status.
+You can use your Complaint ID to track
+the complaint status.
 
 Thank you for helping improve our city.
 
@@ -53,6 +72,10 @@ Civic Complaint Management System
     }
 
 
+# =========================================================
+# SEND COMPLAINT EMAIL USING RESEND HTTPS API
+# =========================================================
+
 def send_complaint_email(
     email: str,
     complaint_id: str,
@@ -61,9 +84,9 @@ def send_complaint_email(
     department: str,
     ai_response: str,
 ):
-    if not SMTP_EMAIL or not SMTP_PASSWORD:
+    if not RESEND_API_KEY:
         raise RuntimeError(
-            "SMTP_EMAIL and SMTP_PASSWORD are not configured."
+            "RESEND_API_KEY is not configured."
         )
 
     email_data = create_complaint_email(
@@ -75,15 +98,89 @@ def send_complaint_email(
         ai_response=ai_response,
     )
 
-    message = EmailMessage()
-    message["From"] = SMTP_EMAIL
-    message["To"] = email_data["to"]
-    message["Subject"] = email_data["subject"]
-    message.set_content(email_data["body"])
+    payload = {
+        "from": RESEND_FROM_EMAIL,
+        "to": [email_data["to"]],
+        "subject": email_data["subject"],
+        "text": email_data["body"],
+    }
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.send_message(message)
+    request = urllib.request.Request(
+        RESEND_API_URL,
+        data=json.dumps(
+            payload
+        ).encode("utf-8"),
+        headers={
+            "Authorization": (
+                f"Bearer {RESEND_API_KEY}"
+            ),
+            "Content-Type": "application/json",
+            "User-Agent": (
+                "Smart-City-AI/1.0"
+            ),
+        },
+        method="POST",
+    )
 
-    return True
+    try:
+        with urllib.request.urlopen(
+            request,
+            timeout=30,
+        ) as response:
+
+            response_body = (
+                response.read()
+                .decode("utf-8")
+            )
+
+            if response.status < 200 or response.status >= 300:
+                raise RuntimeError(
+                    "Resend API returned "
+                    f"HTTP {response.status}: "
+                    f"{response_body}"
+                )
+
+            result = json.loads(
+                response_body
+            )
+
+            if not result.get("id"):
+                raise RuntimeError(
+                    "Resend API did not return "
+                    "an email ID."
+                )
+
+            print(
+                "Email sent successfully "
+                f"to {email}"
+            )
+
+            print(
+                f"Resend Email ID: "
+                f"{result['id']}"
+            )
+
+            return True
+
+    except urllib.error.HTTPError as error:
+        error_body = ""
+
+        try:
+            error_body = (
+                error.read()
+                .decode("utf-8")
+            )
+        except Exception:
+            pass
+
+        raise RuntimeError(
+            "Resend API error "
+            f"{error.code}: "
+            f"{error_body}"
+        ) from error
+
+    except urllib.error.URLError as error:
+        raise RuntimeError(
+            "Unable to reach Resend API: "
+            f"{error.reason}"
+        ) from error
