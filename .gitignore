@@ -1,0 +1,40 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+
+# Environment / secrets
+.env
+backend/.env
+frontend/.env
+
+# Frontend dependencies
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded/generated files
+backend/uploads/
+backend/runs/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+
+# OS/editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+uploads/
+
+*.cache

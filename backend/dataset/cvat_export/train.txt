@@ -1,0 +1,5 @@
+data/images/train/path hole yolo 2.jpg
+data/images/train/path hole yolo 4.jpg
+data/images/train/path hole yolo 5.jpg
+data/images/train/path hole yolo.jpg
+data/images/train/path hole yolo3.jpg

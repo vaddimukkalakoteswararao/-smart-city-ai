@@ -1,0 +1,7 @@
+path: D:/OneDrive/Desktop/AI Smart City Project/backend/dataset/cvat_export
+
+train: images/train
+val: images/val
+
+names:
+  0: pothole
