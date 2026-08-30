@@ -89,6 +89,21 @@ function App() {
   const [complaintsError, setComplaintsError] = useState("");
 
   // =======================================================
+  // AI CHAT ASSISTANT
+  // =======================================================
+
+  const [chatMessages, setChatMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hi! 👋 I’m the Smart City AI Assistant. Ask me about civic issues, submitting complaints, or tracking your complaint.",
+    },
+  ]);
+
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // =======================================================
   // STAFF
   // =======================================================
 
@@ -450,6 +465,77 @@ function App() {
       );
     } finally {
       setComplaintsLoading(false);
+    }
+  };
+
+  // =======================================================
+  // AI CHAT ASSISTANT
+  // =======================================================
+
+  const sendChatMessage = async (event) => {
+    event.preventDefault();
+
+    const message = chatInput.trim();
+
+    if (!message || chatLoading) {
+      return;
+    }
+
+    setChatMessages((previous) => [
+      ...previous,
+      {
+        role: "user",
+        content: message,
+      },
+    ]);
+
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/complaints/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            message,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.detail ||
+            "Unable to get an AI response."
+        );
+      }
+
+      setChatMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          content: data.response,
+        },
+      ]);
+    } catch (error) {
+      console.error("Chat error:", error);
+
+      setChatMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          content:
+            "Sorry, I could not process that question right now. Please try again.",
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -4603,6 +4689,103 @@ function App() {
                 </div>
 
               )}
+
+            </section>
+
+            {/* =================================================
+                AI CHAT ASSISTANT
+               ================================================= */}
+
+            <section className="recent-section smart-chat-section">
+
+              <div className="admin-header">
+
+                <div>
+
+                  <h3>
+                    💬 Smart City AI Assistant
+                  </h3>
+
+                  <p className="section-subtitle">
+                    Ask questions about civic issues, complaints, and the reporting process.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div className="chat-messages">
+
+                {chatMessages.map(
+                  (message, index) => (
+                    <div
+                      key={index}
+                      className={
+                        message.role === "user"
+                          ? "chat-message chat-user"
+                          : "chat-message chat-assistant"
+                      }
+                    >
+
+                      <div className="chat-message-label">
+                        {message.role === "user"
+                          ? "You"
+                          : "Smart City AI"}
+                      </div>
+
+                      <div className="chat-message-content">
+                        {message.content}
+                      </div>
+
+                    </div>
+                  )
+                )}
+
+                {chatLoading && (
+                  <div className="chat-message chat-assistant">
+
+                    <div className="chat-message-label">
+                      Smart City AI
+                    </div>
+
+                    <div className="chat-message-content">
+                      Thinking...
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+
+              <form
+                className="chat-form"
+                onSubmit={sendChatMessage}
+              >
+
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(event) =>
+                    setChatInput(event.target.value)
+                  }
+                  placeholder="Ask about potholes, garbage, water leakage..."
+                  disabled={chatLoading}
+                />
+
+                <button
+                  type="submit"
+                  className="report-button"
+                  disabled={
+                    chatLoading ||
+                    !chatInput.trim()
+                  }
+                >
+                  {chatLoading
+                    ? "Sending..."
+                    : "Ask AI"}
+                </button>
+
+              </form>
 
             </section>
 

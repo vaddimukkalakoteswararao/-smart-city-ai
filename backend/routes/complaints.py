@@ -9,6 +9,7 @@ from fastapi import (
     HTTPException,
     UploadFile,
 )
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from agents.classification_agent import classify_complaint
@@ -16,6 +17,7 @@ from agents.email_agent import send_complaint_email
 from agents.reply_agent import generate_reply
 from agents.vision_agent import analyze_image
 from agents.recommendation_agent import generate_recommendation
+from agents.chat_agent import generate_chat_response
 
 from database.connection import get_db
 from models.complaint import Complaint
@@ -28,6 +30,40 @@ router = APIRouter(
     prefix="/complaints",
     tags=["Complaints"],
 )
+
+
+# =========================================================
+# AI CHAT ASSISTANT
+# =========================================================
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+@router.post("/chat")
+def complaint_chat(
+    payload: ChatRequest,
+    current_user: User = Depends(
+        get_authenticated_user
+    ),
+):
+    if current_user.role != "citizen":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Only citizen accounts can "
+                "use the AI assistant."
+            ),
+        )
+
+    response = generate_chat_response(
+        payload.message
+    )
+
+    return {
+        "success": True,
+        "response": response,
+    }
 
 
 # =========================================================
